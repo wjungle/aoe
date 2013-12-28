@@ -8,30 +8,40 @@ typedef struct node *nodePointer;
 struct node{
 	int vertex;
 	int duration;
+	int early;
+	int late;
 	nodePointer link;
 };
 typedef struct{
 	int count;
+	int earliest;
+	int latest;
+	int pre;
 	nodePointer first;
 }hdnodes;
 hdnodes graph[MAX_VERTICES];
 
 typedef enum {INPUT_MATRIX_1, INPUT_MATRIX_2}input_file;
 
-int init_graph(input_file);
-void topSort(hdnodes, int);
+int init_graph(input_file, int *);
+void topSort(hdnodes [], int);
+void calc_latest(hdnodes [], int);
 nodePointer newNode();
 void print_graph(int);
+void print_result(int, int);
 
 int main(void)
 {
-	int i, num_vertex = 0;
+	int i, num_vertex = 0, num_edge = 0;
 
 	/* Init graph */
 	for(i=0; i<MAX_VERTICES; i++)
 	{
 		graph[i].count = 0;
 		graph[i].first = NULL;	
+		graph[i].earliest = 0;
+		graph[i].latest = 100;
+		graph[i].pre = 0;
 	}
 
 	printf("Please select input matrix: 1) or 2)\n");
@@ -39,23 +49,28 @@ int main(void)
 	switch(i)
 	{
 		case 1:
-			num_vertex = init_graph(INPUT_MATRIX_1);
+			num_vertex = init_graph(INPUT_MATRIX_1, &num_edge);
 			break;
 		case 2:
-			num_vertex = init_graph(INPUT_MATRIX_2);
+			num_vertex = init_graph(INPUT_MATRIX_2, &num_edge);
 			break;
 	}
-	//topSort(graph[], 10);
+	printf("*** THE GRAPH for Adjancency Lists |V|=%d, |E|=%d ***\n", num_vertex, num_edge);
 	print_graph(num_vertex);
+	topSort(graph, num_vertex);
+	calc_latest(graph, num_vertex);
+	print_result(num_vertex, num_edge);
+
 }
 
-int init_graph(input_file in)
+int init_graph(input_file in, int *num_edge)
 {
 	int i = 0, j = 0, num_vertex = 0;
 	char c;
 	nodePointer temp, node;
 	FILE *fp;
 
+	*num_edge = 0;
 	temp = newNode();
 
 	switch(in)
@@ -97,6 +112,7 @@ int init_graph(input_file in)
 				graph[j].count++;
 				temp = node;
 				j++;
+				(*num_edge)++;
 			}
 		}while(1);
 		fclose(fp);
@@ -104,15 +120,15 @@ int init_graph(input_file in)
 	return num_vertex;
 }
 
-#if 0
-void topSort(hdnodes graph[], int n)
+#if 1
+void topSort(hdnodes graph[MAX_VERTICES], int n)
 {
-	int i, j, k, top;
+	int i, j, k, top, temp=-1;
 	nodePointer ptr;
 
 	top = -1;
 	for(i = 0 ; i < n; i++)
-		if(!graph.count){
+		if(!graph[i].count){
 			graph[i].count = top;
 			top = i;
 		}
@@ -124,9 +140,17 @@ void topSort(hdnodes graph[], int n)
 		else{
 			j = top;
 			top = graph[top].count;
-			printf("v%d, ",j);
-			for(ptr = graph[j].link; ptr; ptr = ptr->link){
+
+			graph[j].pre = temp;
+			temp = j;
+
+			//printf("v%d, ",j);
+			/* calculate < j, k > */
+			for(ptr = graph[j].first; ptr; ptr = ptr->link){
 				k = ptr->vertex;
+				/* calculate the set of all vertex to 'k' */
+				if(graph[k].earliest < graph[j].earliest + ptr->duration)
+					graph[k].earliest = graph[j].earliest + ptr->duration;
 				graph[k].count--;
 				if(!graph[k].count){
 					graph[k].count = top;
@@ -137,15 +161,31 @@ void topSort(hdnodes graph[], int n)
 }
 #endif
 
+void calc_latest(hdnodes graph[MAX_VERTICES], int n)
+{
+	int i, j;
+	nodePointer temp;
+
+	graph[n-1].latest = graph[n-1].earliest;
+	
+	/* calculate < i, k > */
+	for(i = n-2; i > -1; i = graph[i].pre ){
+		for(temp = graph[i].first; temp; temp = temp->link)
+			if(graph[i].latest > graph[temp->vertex].latest - temp->duration)
+				graph[i].latest = graph[temp->vertex].latest - temp->duration;
+	}
+
+}
+
 void print_graph(int num)
 {
 	int i;
 	nodePointer temp;
 
-	printf("hdnode:\tnode\n");
+	printf("hdnode:\t\tnode\n");
 	for(i = 0; i < num; i++){
-		printf("[%d] %d ", i, graph[i].count);
-		printf("\t");
+		printf("[%d] %d", i, graph[i].count);
+		printf("\t\t");
 		if(graph[i].first != NULL){
 			temp = graph[i].first;
 			for(; temp; temp = temp->link){
@@ -154,6 +194,23 @@ void print_graph(int num)
 		}
 		printf("\n");
 	}		
+}
+
+void print_result(int vertex, int edge)
+{
+	int i;
+
+	printf("hdnode:\n");
+	for(i = 0; i < vertex; i++){
+		printf("V.%d %d/%d(%d) ", i, graph[i].earliest, graph[i].latest, graph[i].pre);
+	printf("\t");
+	}
+	printf("\n==============\n");
+	for(i = 1; i <= edge; i++){
+		printf("a.%d ", i);
+		printf("\t");
+	}
+	printf("\n");
 }
 
 nodePointer newNode()
