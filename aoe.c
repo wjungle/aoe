@@ -2,16 +2,15 @@
 #include <stdlib.h>
 
 #define MAX_VERTICES 10
-#define MAX_BUF 100
+#define MAX_EDGES 30
 
 typedef struct node *nodePointer;
 struct node{
 	int vertex;
 	int duration;
-	int early;
-	int late;
 	nodePointer link;
 };
+
 typedef struct{
 	int count;
 	int earliest;
@@ -19,7 +18,14 @@ typedef struct{
 	int pre;
 	nodePointer first;
 }hdnodes;
+typedef struct{
+	int edge;
+	int early;
+   	int late;
+}Edge;	
+
 hdnodes graph[MAX_VERTICES];
+Edge g_edge[MAX_EDGES];
 
 typedef enum {INPUT_MATRIX_1, INPUT_MATRIX_2}input_file;
 
@@ -42,6 +48,11 @@ int main(void)
 		graph[i].earliest = 0;
 		graph[i].latest = 100;
 		graph[i].pre = 0;
+	}
+	for(i=0; i<MAX_EDGES; i++){
+		g_edge[i].edge = 0;
+		g_edge[i].early = 0;
+		g_edge[i].late = 0;
 	}
 
 	printf("Please select input matrix: 1) or 2)\n");
@@ -66,6 +77,7 @@ int main(void)
 int init_graph(input_file in, int *num_edge)
 {
 	int i = 0, j = 0, num_vertex = 0;
+	int k = 0;
 	char c;
 	nodePointer temp, node;
 	FILE *fp;
@@ -109,6 +121,7 @@ int init_graph(input_file in, int *num_edge)
 				node->vertex = j;
 				node->duration = (int)(c-'0');
 				node->link = NULL;
+				g_edge[k++].edge = (int)(c-'0');
 				graph[j].count++;
 				temp = node;
 				j++;
@@ -200,14 +213,15 @@ void print_result(int vertex, int edge)
 {
 	int i;
 
-	printf("hdnode:\n");
+	printf("hdnode:V.# earliest/latest(previoes)\n");
 	for(i = 0; i < vertex; i++){
 		printf("V.%d %d/%d(%d) ", i, graph[i].earliest, graph[i].latest, graph[i].pre);
 	printf("\t");
 	}
 	printf("\n==============\n");
-	for(i = 1; i <= edge; i++){
-		printf("a.%d ", i);
+	printf("edges:(a.# (weight))\n");
+	for(i = 0; i < edge; i++){
+		printf("a.%d (%d)", i+1, g_edge[i].edge);
 		printf("\t");
 	}
 	printf("\n");
